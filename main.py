@@ -3,6 +3,7 @@ import os
 import datetime
 import random
 import string
+import json
 
 
 logs_directory = "logs"
@@ -21,14 +22,13 @@ def log_message(message: str) -> None:
     l.write(f"[{timestamp}] {message}\n")
     l.close()
 
-def write_results(results: str, model : str) -> None:
+def write_results(results: list, model : str) -> None:
     timestamp = starttime.strftime("%Y-%m-%d_%H-%M-%S")
-    log_filename = os.path.join(results_directory, f"result_{model.replace('/', '')}_{timestamp}.txt")
-    l = open(log_filename, "a", encoding="utf-8")
-    l.write(results)
-    l.close()
+    results_filepath = os.path.join(results_directory, f"result_{model.replace('/', '')}_{timestamp}.json")
+    with open(results_filepath, "w") as f:
+        json.dump(results, f, indent=2)
 
-def main(tries):
+def stringreversal(tries):
 
     log_message(f"Starting new eval with {tries} tries")
     
@@ -43,6 +43,8 @@ def main(tries):
 
         result = []
 
+        result.append("String reversal test")
+
         stringlenth = random.randint(4, 10)
         text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
 
@@ -55,7 +57,7 @@ def main(tries):
             stream = client.responses.create(
                 model=llm,
                 reasoning={"effort": "medium", "summary": "detailed"},
-                input=f"Provide the following text in reverse order. Don't output anything else. Only output the reversed string: \"{text}\"",
+                input=f"Provide the following text in reverse order. Don't output anything else. Only output the reversed string without anything additional: \"{text}\"",
                 stream=True,
             )
 
@@ -121,7 +123,9 @@ def main(tries):
 
         results.append(result)
 
-    write_results(str(results), model)
+    write_results(results, model)
+
+
 
 
 if __name__ == "__main__":
@@ -150,4 +154,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"An error occurred, trying to create the results directory: {e}")
 
-    main(100)
+    stringreversal(100)
