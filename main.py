@@ -290,7 +290,6 @@ def main():
         "add_two_ints": add_two_ints(100)
     }
 
-    print(run)
 
     # check if all models are the same, if not, grab the most common model
     all_models = []
