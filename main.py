@@ -4,23 +4,31 @@ import datetime
 import random
 import string
 import json
-
+import time
 
 logs_directory = "logs"
 results_directory = "results"
 
-# leave empty to select currently loaded model
+# Todo: Implement multiple models in one run
+# leave empty to select currently loaded model (this only works with LM-Studio)
 llm = ""
+baseurl = "http://127.0.0.1:1234/v1"
 
-
+# Todo: Add option to run with time limit instead of requests limit, e.g. 1 hour instead of 100 tries
+# Todo: Implement other benchmarks like adding two long integers together or calculating roots
 
 
 def log_message(message: str) -> None:
     timestamp = starttime.strftime("%Y-%m-%d_%H-%M-%S")
     log_filename = os.path.join(logs_directory, f"log_{timestamp}.txt")
-    l = open(log_filename, "a", encoding="utf-8")
-    l.write(f"[{timestamp}] {message}\n")
-    l.close()
+    log_filename_recent = os.path.join(logs_directory, f"log_recent.txt")
+    # Write to main log file using context manager
+    with open(log_filename, "a", encoding="utf-8") as log:
+        log.write(f"[{timestamp}] {message}\n")
+
+    # Write log file which will get deleted and started fresh the next time, so that users can find the most recent log more easily
+    with open(log_filename_recent, "a", encoding="utf-8") as log:
+        log.write(f"[{timestamp}] {message}\n")
 
 def write_results(results: list, model : str) -> None:
     timestamp = starttime.strftime("%Y-%m-%d_%H-%M-%S")
@@ -36,7 +44,7 @@ def stringreversal(tries):
 
     results = []
 
-    client = OpenAI(base_url="http://127.0.0.1:1234/v1")
+    client = OpenAI(base_url=baseurl)
 
     for t in range(tries):
         log_message(f"Starting test {t}")
@@ -68,7 +76,7 @@ def stringreversal(tries):
 
         reasoning_text = ""
         response = ""
-        thinking = False
+        thinking = False # not used as of now.
         has_thinking = False
 
         for event in stream:
@@ -78,9 +86,10 @@ def stringreversal(tries):
                 has_thinking = True
                 running_for = datetime.datetime.now() - starttime
 
-                # display of seconds laggy, needs fixing sometime in the future
+                # only updates time when token is returned, needs fix
                 print(f"\rThinking... {running_for.total_seconds():.3f}s", end="")
 
+            # Todo: Implement reasoning summary collection
             if event.type == "response.reasoning_text.done":
                 thinking = False
                 has_thinking = True
@@ -99,8 +108,9 @@ def stringreversal(tries):
                 model = event.response.model
 
         delta = datetime.datetime.now() - starttime
-        result.append(delta.total_seconds())
 
+        # appends data to the list
+        result.append(delta.total_seconds())
 
         if has_thinking:
             result.append(reasoning_text)
@@ -128,7 +138,7 @@ def stringreversal(tries):
 
 
 
-if __name__ == "__main__":
+def main():
     global starttime
     starttime = datetime.datetime.now()
 
@@ -154,4 +164,15 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"An error occurred, trying to create the results directory: {e}")
 
+    # removes recent log
+    try:
+        os.remove(f"{logs_directory}/log_recent.txt")
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        print(f"An error occurred while removing log_recent.txt: {e}\nIf the file is not present right now, and the rest of the program is working and writing the logs correctly, don't worry.")
     stringreversal(100)
+
+
+if __name__ == "__main__":
+    main()
