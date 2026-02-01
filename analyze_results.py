@@ -18,9 +18,9 @@ def analyze_acc(filename: str):
             success = statuslist.count("success")
             total = len(statuslist)
             
-            persentage = (success/total) * 100
+            percentage = (success/total) * 100
 
-            print(f"{persentage}%")
+            print(f"{percentage}%")
 
     
 def count_reasoning_patterns(filename: str, patterns: list):
@@ -40,18 +40,18 @@ def count_reasoning_patterns(filename: str, patterns: list):
                     reasoning.append(result["reasoning"])
             except:
                 print(f"Reasoningdata could not be extracted. Please check '{filename}' for reasoning traces.")
-                exit()
+                return
 
-            for patter in patterns:
+            for pattern in patterns:
 
                 traces = 0
                 times = 0
 
-                for reasoningtarce in reasoning:
+                for reasoningtrace in reasoning:
                     traces += 1
-                    times += reasoningtarce.lower().count(patter)
+                    times += reasoningtrace.lower().count(pattern)
                 
-                print(f"{patter} found {times/traces} times per response")
+                print(f"{pattern} found {times/traces} times per response")
 
 
 def reasoning_lenth_stats(filename):
@@ -70,29 +70,29 @@ def reasoning_lenth_stats(filename):
                     reasoning.append(result["reasoning"])
             except:
                 print(f"Reasoningdata could not be extracted. Please check '{filename}' for reasoning traces.")
-                exit()
+                return
 
-            lenth = []
+            length = []
             wordcount = []
             word_length = []
 
             # add statistics to lists
             for reasoningtrace in reasoning:
-                lenth.append(len(reasoningtrace))   # length in characters of each trace
-                wordcount.append(len(reasoningtrace.split()))   # lenth in words of each trace
+                length.append(len(reasoningtrace))   # length in characters of each trace
+                wordcount.append(len(reasoningtrace.split()))   # length in words of each trace
                 for word in reasoningtrace.split():
-                    word_length.append(len(word)) # lenth of each word
+                    word_length.append(len(word)) # length of each word
 
-            print(f"Average characters: {statistics.mean(lenth)}")
+            print(f"Average characters: {statistics.mean(length)}")
             print(f"Average word count: {statistics.mean(wordcount)}")
             print()
-            print(f"Median characters: {statistics.median(lenth)}")
+            print(f"Median characters: {statistics.median(length)}")
             print(f"Median word count: {statistics.median(wordcount)}")
             print()
-            print(f"Minimum characters: {min(lenth)}")
+            print(f"Minimum characters: {min(length)}")
             print(f"Minimum word count: {min(wordcount)}")
             print()
-            print(f"Maximum characters: {max(lenth)}")
+            print(f"Maximum characters: {max(length)}")
             print(f"Maximum word count: {max(wordcount)}")
             print()
             print(f"Average word length: {statistics.mean(word_length)}")

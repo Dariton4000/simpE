@@ -21,11 +21,12 @@ baseurl = "http://127.0.0.1:1234/v1"
 
 def log_message(message: str) -> None:
     timestamp = starttime.strftime("%Y-%m-%d_%H-%M-%S")
+    timestampnow = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_filename = os.path.join(logs_directory, f"log_{timestamp}.txt")
     log_filename_recent = os.path.join(logs_directory, f"log_recent.txt")
     # Write to main log file using context manager
     with open(log_filename, "a", encoding="utf-8") as log:
-        log.write(f"[{timestamp}] {message}\n")
+        log.write(f"[{timestampnow}] {message}\n")
 
     # Write log file which will get deleted and started fresh the next time, so that users can find the most recent log more easily
     with open(log_filename_recent, "a", encoding="utf-8") as log:
