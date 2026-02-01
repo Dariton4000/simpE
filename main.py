@@ -16,6 +16,7 @@ baseurl = "http://127.0.0.1:1234/v1"
 
 # Todo: Add option to run with time limit instead of requests limit, e.g. 1 hour instead of 100 tries
 # Todo: Implement other benchmarks like adding calculating roots
+# Todo: Save json after each run instead of just at the end
 
 
 def log_message(message: str) -> None:
@@ -97,7 +98,7 @@ def string_reversal(tries):
             if event.type == "response.reasoning_text.done":
                 thinking = False
                 has_thinking = True
-                log_message(f"[Reasoning]: {reasoning_text}")
+                log_message(f"[Reasoning]: \n{reasoning_text}")
 
             elif event.type == "response.output_text.delta":
                 response += event.delta
@@ -106,6 +107,7 @@ def string_reversal(tries):
                 
             elif event.type == "response.output_text.done":
                 thinking = False
+                # Todo: needs to clear line before rewriting
                 print(f"\rResponse complete.", end="")
 
             elif event.type == "response.completed":
@@ -202,7 +204,7 @@ def add_two_ints(tries):
             if event.type == "response.reasoning_text.done":
                 thinking = False
                 has_thinking = True
-                log_message(f"[Reasoning]: {reasoning_text}")
+                log_message(f"[Reasoning]: \n{reasoning_text}")
 
             elif event.type == "response.output_text.delta":
                 response += event.delta
