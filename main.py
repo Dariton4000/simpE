@@ -252,6 +252,108 @@ def add_two_ints(tries):
     return(results)
 
 
+def string_rehearsal(tries):
+
+    log_message(f"Starting new string rehearsal eval with {tries} tries")
+    
+    model = ""
+
+    results = {
+        "test_type": "String Rehearsal",
+        "tries": tries,
+        "results": []
+    }
+
+    client = OpenAI(base_url=baseurl)
+
+    for t in range(tries):
+        log_message(f"Starting test {t}")
+
+        result = {
+        }
+
+
+        stringlenth = random.randint(10, 20)
+        text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
+
+        result["string"] = text
+
+        try:
+            starttime = datetime.datetime.now()
+
+            # streaming to support reasoning output
+            stream = client.responses.create(
+                model=llm,
+                reasoning={"effort": "medium", "summary": "detailed"},
+                input=f"Repeat the following string exactly without modifying it. Don't output anything else. Only output the string without anything additional, not even quotes: \"{text}\"",
+                stream=True,
+            )
+
+        except Exception as e:
+            print("\nAn error occurred while making the API request.")
+            log_message(f"An error occurred in the API call: {e}")
+            continue
+
+        reasoning_text = ""
+        response = ""
+        thinking = False # not used as of now.
+        has_thinking = False
+
+        for event in stream:
+            if event.type == "response.reasoning_text.delta":
+                reasoning_text += event.delta
+                thinking = True
+                has_thinking = True
+                running_for = datetime.datetime.now() - starttime
+
+                # only updates time when token is returned, needs fix
+                print(f"\rThinking... {running_for.total_seconds():.3f}s", end="")
+
+            # Todo: Implement reasoning summary collection
+            if event.type == "response.reasoning_text.done":
+                thinking = False
+                has_thinking = True
+                log_message(f"[Reasoning]: \n{reasoning_text}")
+
+            elif event.type == "response.output_text.delta":
+                response += event.delta
+                thinking = False
+                print(f"\rResponding...", end="")
+                
+            elif event.type == "response.output_text.done":
+                thinking = False
+                # Todo: needs to clear line before rewriting
+                print(f"\rResponse complete.", end="")
+
+            elif event.type == "response.completed":
+                model = event.response.model
+
+        delta = datetime.datetime.now() - starttime
+
+        result["duration_seconds"] = delta.total_seconds()
+
+        if has_thinking:
+            result["reasoning"] = reasoning_text
+
+
+        result["response"] = response
+
+        result["model"] = model
+
+        if response.strip() != text:
+            print(f"\nFail: {t+1}")
+            log_message(f"Test {t+1} failed. Expected: {text}, Got: {response.strip()}")
+            result["status"] = "fail"
+        else:
+            print()
+            print("Success:", t+1)
+            log_message(f"Success: {t+1}")
+            result["status"] = "success"
+
+        results["results"].append(result)
+
+    return(results)
+
 
 def main():
     global starttime
@@ -290,7 +392,8 @@ def main():
     
     run = {
         "string_reversal": string_reversal(100),
-        "add_two_ints": add_two_ints(100)
+        "add_two_ints": add_two_ints(100),
+        "string_rehearsal": string_rehearsal(100)
     }
 
 
