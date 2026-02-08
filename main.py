@@ -15,7 +15,7 @@ llm = ""
 baseurl = "http://127.0.0.1:1234/v1"
 
 # Todo: Add option to run with time limit instead of requests limit, e.g. 1 hour instead of 100 tries
-# Todo: Implement other benchmarks like adding calculating roots
+# Todo: Implement other benchmarks like adding calculating roots or counting specific characters in a random string/word/sentence
 # Todo: Save json after each run instead of just at the end
 
 
@@ -71,7 +71,7 @@ def string_reversal(tries):
             stream = client.responses.create(
                 model=llm,
                 reasoning={"effort": "medium", "summary": "detailed"},
-                input=f"Provide the following text in reverse order. Don't output anything else. Only output the reversed string without anything additional: \"{text}\"",
+                input=f"Provide the following text in reverse order. Don't output anything else. Only output the reversed string without anything additional, not even quotes: \"{text}\"",
                 stream=True,
             )
 
