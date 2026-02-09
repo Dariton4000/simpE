@@ -59,7 +59,7 @@ def string_reversal(tries):
         }
 
 
-        stringlenth = random.randint(4, 10)
+        stringlenth = random.randint(4, 20)
         text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
 
         result["string"] = text
@@ -161,8 +161,8 @@ def add_two_ints(tries):
         result = {}
 
 
-        int1_length = random.randint(4, 10)
-        int2_length = random.randint(4, 10)
+        int1_length = random.randint(4, 20)
+        int2_length = random.randint(4, 20)
 
         int1 = int(''.join(random.choice(string.digits) for _ in range(int1_length)))
         int2 = int(''.join(random.choice(string.digits) for _ in range(int2_length)))
@@ -273,7 +273,7 @@ def string_rehearsal(tries):
         }
 
 
-        stringlenth = random.randint(10, 20)
+        stringlenth = random.randint(20, 100)
         text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
 
         result["string"] = text
