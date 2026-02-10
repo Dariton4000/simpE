@@ -1,6 +1,8 @@
 ### simpE is a simple way to benchmark small LLMs in the following areas:
 - Instruction Following
 - String Reversing
+- Big Intiger Addition
+- String Rehearsal
 
 ## Install
 
