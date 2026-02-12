@@ -13,9 +13,11 @@ results_directory = "results"
 # leave empty to select currently loaded model (this only works with LM-Studio)
 llm = ""
 baseurl = "http://127.0.0.1:1234/v1"
+reasoning_effort = "low"
 
+# Todo: When a model responds with more than 120% of what is expected, clasefy the response as critical failature
 # Todo: Add option to run with time limit instead of requests limit, e.g. 1 hour instead of 100 tries
-# Todo: Implement other benchmarks like adding calculating roots or counting specific characters in a random string/word/sentence
+# Todo: Implement other benchmarks like adding calculating roots or counting specific characters in a random string/word/sentence, another benchmark to implement would be the model outputing a certain amount of a specific symbol or letter, for example "Output the letter A 27 times with spaces inbetween each letter, but no spaces at the start or end."
 # Todo: Save json after each run instead of just at the end
 
 
@@ -59,7 +61,7 @@ def string_reversal(tries):
         }
 
 
-        stringlenth = random.randint(4, 20)
+        stringlenth = random.randint(3, 30)
         text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
 
         result["string"] = text
@@ -70,7 +72,7 @@ def string_reversal(tries):
             # streaming to support reasoning output
             stream = client.responses.create(
                 model=llm,
-                reasoning={"effort": "medium", "summary": "detailed"},
+                reasoning={"effort": reasoning_effort, "summary": "detailed"},
                 input=f"Provide the following text in reverse order. Don't output anything else. Only output the reversed string without anything additional, not even quotes: \"{text}\"",
                 stream=True,
             )
@@ -161,8 +163,8 @@ def add_two_ints(tries):
         result = {}
 
 
-        int1_length = random.randint(4, 20)
-        int2_length = random.randint(4, 20)
+        int1_length = random.randint(3, 30)
+        int2_length = random.randint(3, 30)
 
         int1 = int(''.join(random.choice(string.digits) for _ in range(int1_length)))
         int2 = int(''.join(random.choice(string.digits) for _ in range(int2_length)))
@@ -176,7 +178,7 @@ def add_two_ints(tries):
             # streaming to support reasoning output
             stream = client.responses.create(
                 model=llm,
-                reasoning={"effort": "medium", "summary": "detailed"},
+                reasoning={"effort": reasoning_effort, "summary": "detailed"},
                 input=f"Provide the sum of the two numbers. Don't output anything else. Only output the sum of the two numbers without anything additional. Only output the final number, no calculation, no explanation, just the final number without any text.: \"{int1}\" \"{int2}\"",
                 stream=True,
             )
@@ -273,7 +275,7 @@ def string_rehearsal(tries):
         }
 
 
-        stringlenth = random.randint(20, 100)
+        stringlenth = random.randint(10, 600)
         text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
 
         result["string"] = text
@@ -284,7 +286,7 @@ def string_rehearsal(tries):
             # streaming to support reasoning output
             stream = client.responses.create(
                 model=llm,
-                reasoning={"effort": "medium", "summary": "detailed"},
+                reasoning={"effort": reasoning_effort, "summary": "detailed"},
                 input=f"Repeat the following string exactly without modifying it. Don't output anything else. Only output the string without anything additional, not even quotes: \"{text}\"",
                 stream=True,
             )

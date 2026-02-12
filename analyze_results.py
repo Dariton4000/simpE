@@ -4,6 +4,9 @@ import os
 import questionary
 import statistics
 
+# Todo: add a score calculated from all the benchmarks
+# -> Requirements: all the benchmarks need to be implemented (in main.py) and tuned it
+
 def analyze_acc(filename: str):
     with open(filename, "r") as f:
         data = json.load(f)
