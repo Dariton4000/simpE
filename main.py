@@ -13,7 +13,9 @@ results_directory = "results"
 # leave empty to select currently loaded model (this only works with LM-Studio)
 llm = ""
 baseurl = "http://127.0.0.1:1234/v1"
-reasoning_effort = "low"
+reasoning_effort = "medium"
+
+tries = 100
 
 # Todo: When a model responds with more than 120% of what is expected, clasefy the response as critical failature
 # Todo: Add option to run with time limit instead of requests limit, e.g. 1 hour instead of 100 tries
@@ -40,7 +42,7 @@ def write_results(run: dict, model : str) -> None:
     with open(results_filepath, "w") as f:
         json.dump(run, f, indent=2)
 
-def string_reversal(tries):
+def string_reversal(tries, con: console):
 
     log_message(f"Starting new string reversal eval with {tries} tries")
     
@@ -92,10 +94,7 @@ def string_reversal(tries):
                 reasoning_text += event.delta
                 thinking = True
                 has_thinking = True
-                running_for = datetime.datetime.now() - starttime
-
-                # only updates time when token is returned, needs fix
-                print(f"\rThinking... {running_for.total_seconds():.3f}s", end="")
+                con.thinking(starttime)
 
             # Todo: Implement reasoning summary collection
             if event.type == "response.reasoning_text.done":
@@ -106,12 +105,9 @@ def string_reversal(tries):
             elif event.type == "response.output_text.delta":
                 response += event.delta
                 thinking = False
-                print(f"\rResponding...", end="")
                 
             elif event.type == "response.output_text.done":
                 thinking = False
-                # Todo: needs to clear line before rewriting
-                print(f"\rResponse complete.", end="")
 
             elif event.type == "response.completed":
                 model = event.response.model
@@ -129,21 +125,21 @@ def string_reversal(tries):
         result["model"] = model
 
         if response.strip() != text[::-1]:
-            print(f"\nFail: {t+1}")
             log_message(f"Test {t+1} failed. Expected: {text[::-1]}, Got: {response.strip()}")
             result["status"] = "fail"
         else:
-            print()
-            print("Success:", t+1)
             log_message(f"Success: {t+1}")
             result["status"] = "success"
 
+        con.runcomplete((not (response.strip() != text[::-1])), f"String Reversal")
+
         results["results"].append(result)
 
+    con.benchdone(f"string_reversal")
     return(results)
 
 
-def add_two_ints(tries):
+def add_two_ints(tries, con: console):
 
     log_message(f"Starting new integer addition eval with {tries} tries")
     
@@ -198,10 +194,7 @@ def add_two_ints(tries):
                 reasoning_text += event.delta
                 thinking = True
                 has_thinking = True
-                running_for = datetime.datetime.now() - starttime
-
-                # only updates time when token is returned, needs fix
-                print(f"\rThinking... {running_for.total_seconds():.3f}s", end="")
+                con.thinking(starttime)
 
             # Todo: Implement reasoning summary collection
             if event.type == "response.reasoning_text.done":
@@ -212,14 +205,13 @@ def add_two_ints(tries):
             elif event.type == "response.output_text.delta":
                 response += event.delta
                 thinking = False
-                print(f"\rResponding...", end="")
                 
             elif event.type == "response.output_text.done":
                 thinking = False
-                print(f"\rResponse complete.", end="")
 
             elif event.type == "response.completed":
                 model = event.response.model
+
 
         delta = datetime.datetime.now() - starttime
 
@@ -251,10 +243,11 @@ def add_two_ints(tries):
 
         results["results"].append(result)
 
+    con.benchdone(f"add_two_ints")
     return(results)
 
 
-def string_rehearsal(tries):
+def string_rehearsal(tries, con: console):
 
     log_message(f"Starting new string rehearsal eval with {tries} tries")
     
@@ -306,10 +299,7 @@ def string_rehearsal(tries):
                 reasoning_text += event.delta
                 thinking = True
                 has_thinking = True
-                running_for = datetime.datetime.now() - starttime
-
-                # only updates time when token is returned, needs fix
-                print(f"\rThinking... {running_for.total_seconds():.3f}s", end="")
+                con.thinking(starttime)
 
             # Todo: Implement reasoning summary collection
             if event.type == "response.reasoning_text.done":
@@ -320,15 +310,13 @@ def string_rehearsal(tries):
             elif event.type == "response.output_text.delta":
                 response += event.delta
                 thinking = False
-                print(f"\rResponding...", end="")
                 
             elif event.type == "response.output_text.done":
                 thinking = False
-                # Todo: needs to clear line before rewriting
-                print(f"\rResponse complete.", end="")
 
             elif event.type == "response.completed":
                 model = event.response.model
+
 
         delta = datetime.datetime.now() - starttime
 
@@ -354,7 +342,62 @@ def string_rehearsal(tries):
 
         results["results"].append(result)
 
+    con.benchdone(f"string_rehearsal")
     return(results)
+
+class console():
+    def __init__(self, triespb) -> None:
+        """
+        triespb: tries per benchmark
+        """
+        self.triespb = triespb
+        self.tries_complete = 0
+        self.benches_run = 1
+        self.currentbench_results = []
+        self.current_bench_name = "Happy benchmarking :)"
+
+    def calculatepersentage(self, shouldformat):
+        """Calculates the current success rate and returns it as a float or a formated string if bool is set to True"""
+        # Todo: needs performance refactor
+        counter = 0
+        positives = 0
+        for result in self.currentbench_results:
+            counter += 1
+            if result:
+                positives +=1
+
+        try:
+            per = float(positives/counter)
+        except ZeroDivisionError:
+            per = 0
+
+        if shouldformat:
+            return f"{per:.2%}"
+        else:
+            return per
+
+
+    def hub(self, preprint:str):
+        print(f"{self.current_bench_name} {self.tries_complete//self.benches_run}/{self.triespb}  {self.calculatepersentage(True)}".ljust(40)) # example: String Reversal 10/100  20% success
+        print(preprint.replace("\n", " ").ljust(40), end="\r\033[A")
+
+    def thinking(self, starttime):
+        running_for = datetime.datetime.now() - starttime
+        # only updates time when token is returned, needs fix for smother stopwatch
+        self.hub(f"Thinking... {running_for.total_seconds():.3f}s")
+
+    def runcomplete(self, result:bool, name:str):
+        self.currentbench_results.append(result)
+        self.tries_complete += 1
+        self.current_bench_name = name
+        self.hub("Done")
+
+
+    def benchdone(self, name:str):
+        self.benches_run += 1
+        print(f"COMPLETE {name}: {self.triespb}/{self.tries_complete/self.benches_run}\nResults: {self.calculatepersentage}", end="\n\n")
+        self.currentbench_results.clear() # clears list for next bench
+
 
 
 def main():
@@ -392,10 +435,19 @@ def main():
     except Exception as e:
         print(f"An error occurred while removing log_recent.txt: {e}\nIf the file is not present right now, and the rest of the program is working and writing the logs correctly, don't worry.")
     
+    con = console(tries)
+
+    lstring_reversal = string_reversal(tries, con)
+
+    ladd_two_ints = add_two_ints(tries, con)
+
+    lstring_rehearsal = string_rehearsal(tries, con)
+
+
     run = {
-        "string_reversal": string_reversal(100),
-        "add_two_ints": add_two_ints(100),
-        "string_rehearsal": string_rehearsal(100)
+        "string_reversal": lstring_reversal,
+        "add_two_ints": ladd_two_ints,
+        "string_rehearsal": lstring_rehearsal
     }
 
 
