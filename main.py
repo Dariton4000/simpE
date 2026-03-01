@@ -19,7 +19,7 @@ reasoning_effort = "low"
 tries = 100
 timeout_time = 400 # time to wait until stopping the current answer, this is to prevent multi-thousand token answer when the llm gets into a death spiral. in seconds
 # Todo: Implement this ^^^
-max_tokens = 512 # might want to increase this with reasoning llms
+max_tokens = 512 * 1 # might want to increase this with reasoning llms
 # Todo ^^^ automatic increase/disableing for this for reasoning llms, needs warmuprun to check if model is reasoning
 
 # Todo: When a model responds with more than 120% of what is expected, clasefy the response as critical failature
@@ -30,7 +30,7 @@ max_tokens = 512 # might want to increase this with reasoning llms
 
 
 def log_message(message: str) -> None:
-    timestamp = starttime.strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = starttimem.strftime("%Y-%m-%d_%H-%M-%S")
     timestampnow = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_filename = os.path.join(logs_directory, f"log_{timestamp}.txt")
     log_filename_recent = os.path.join(logs_directory, f"log_recent.txt")
@@ -42,14 +42,19 @@ def log_message(message: str) -> None:
     with open(log_filename_recent, "a", encoding="utf-8") as log:
         log.write(f"[{timestamp}] {message}\n")
 
-def write_results(run: dict, model : str) -> None:
-    timestamp = starttime.strftime("%Y-%m-%d_%H-%M-%S")
-    results_filepath = os.path.join(results_directory, f"result_{model.replace('/', '')}_{timestamp}.json")
-    with open(results_filepath, "w") as f:
-        json.dump(run, f, indent=2)
+def write_results(run: dict, model : str) -> bool:
+    try:
+        timestamp = starttimem.strftime("%Y-%m-%d_%H-%M-%S")
+        results_filepath = os.path.join(results_directory, f"result_{model.replace('/', '')}_{timestamp}.json")
+        with open(results_filepath, "w") as f:
+            json.dump(run, f, indent=2)
+        return True
+    except Exception as e:
+        print(e)
+        return False
 
-def nresponse(prompt, client:OpenAI, con:console, starttime) -> dict:
-    """takes in a prompt (and client and console and starttime) and then runs the prompt with the model and reaoning setting through the api and returns a dictionary with all the information"""
+def nresponse(prompt: str, client: OpenAI, con: console, starttime: datetime.datetime) -> dict:
+    """takes in a prompt (and client and console and starttime) and then runs the prompt with the model and reasoning setting through the api and returns a dictionary with all the information"""
     resp = {}
     try:
         # streaming to support reasoning output
@@ -63,12 +68,14 @@ def nresponse(prompt, client:OpenAI, con:console, starttime) -> dict:
     except Exception as e:
         print("\nAn error occurred while making the API request.")
         log_message(f"An error occurred in the API call: {e}")
-        return
+        return {}
     con.start_thinking(starttime)
     reasoning_text = ""
     response = ""
     thinking = False # not used as of now.
     has_thinking = False
+    has_stopped_thinking = False
+
     for event in stream:
         if event.type == "response.reasoning_text.delta":
             reasoning_text += event.delta
@@ -83,7 +90,9 @@ def nresponse(prompt, client:OpenAI, con:console, starttime) -> dict:
         elif event.type == "response.output_text.delta":
             response += event.delta
             thinking = False
-            con.done_thinking()
+            if not has_stopped_thinking:
+                has_stopped_thinking = True
+                con.done_thinking()
             
         elif event.type == "response.output_text.done":
             thinking = False
@@ -97,7 +106,26 @@ def nresponse(prompt, client:OpenAI, con:console, starttime) -> dict:
 
     return resp
 
-def string_reversal(tries, con: console):
+
+def build_header(starttime: datetime.datetime) -> dict:
+    """
+    Compiles and returns a header for the json
+    Requires starttime and variables set at the top of the file
+    """
+    header = {
+        "runstarted": starttime.strftime("%Y-%m-%d %H:%M:%S"),
+        "suggested_thinkinglevel": reasoning_effort,
+        "model_selected": llm,
+        "max_output_tokens": max_tokens
+    }
+
+    return header
+
+
+
+
+
+def string_reversal(tries: int, con: console) -> dict:
 
     log_message(f"Starting new string reversal eval with {tries} tries")
     
@@ -116,7 +144,7 @@ def string_reversal(tries, con: console):
 
         result = {}
 
-        stringlenth = random.randint(3, 30)
+        stringlenth = random.randint(2, 30)
         text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
 
         result["string"] = text
@@ -134,10 +162,8 @@ def string_reversal(tries, con: console):
 
         result["duration_seconds"] = delta.total_seconds()
 
-        try:
+        if "reasoning_text" in calresult:
             result["reasoning"] = calresult["reasoning_text"]
-        except KeyError:
-            pass
             
 
         result["response"] = calresult["response"]
@@ -165,7 +191,7 @@ def string_reversal(tries, con: console):
     return(results)
 
 
-def add_two_ints(tries, con: console):
+def add_two_ints(tries, con: console) -> dict:
 
     log_message(f"Starting new integer addition eval with {tries} tries")
     
@@ -185,8 +211,8 @@ def add_two_ints(tries, con: console):
         result = {}
 
 
-        int1_length = random.randint(3, 30)
-        int2_length = random.randint(3, 30)
+        int1_length = random.randint(2, 30)
+        int2_length = random.randint(2, 30)
 
         int1 = int(''.join(random.choice(string.digits) for _ in range(int1_length)))
         int2 = int(''.join(random.choice(string.digits) for _ in range(int2_length)))
@@ -207,11 +233,8 @@ def add_two_ints(tries, con: console):
 
         result["duration_seconds"] = delta.total_seconds()
 
-        try:
+        if "reasoning_text" in calresult:
             result["reasoning"] = calresult["reasoning_text"]
-        except KeyError:
-            pass
-            
 
         result["response"] = calresult["response"]
 
@@ -246,7 +269,7 @@ def add_two_ints(tries, con: console):
     return(results)
 
 
-def string_rehearsal(tries, con: console):
+def string_rehearsal(tries, con: console) -> dict:
 
     log_message(f"Starting new string rehearsal eval with {tries} tries")
     
@@ -266,7 +289,7 @@ def string_rehearsal(tries, con: console):
         result = {}
 
 
-        stringlenth = random.randint(10, 600)
+        stringlenth = random.randint(10, 500)
         text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
 
         result["string"] = text
@@ -284,12 +307,9 @@ def string_rehearsal(tries, con: console):
 
         result["duration_seconds"] = delta.total_seconds()
 
-        try:
+        if "reasoning_text" in calresult:
             result["reasoning"] = calresult["reasoning_text"]
-        except KeyError:
-            pass
             
-
         result["response"] = calresult["response"]
 
         result["model"] = calresult["model"]
@@ -341,11 +361,11 @@ class console():
             return per
 
 
-    def hub(self, preprint:str):
+    def hub(self, preprint: str) -> None:
         print(f"{self.current_bench_name} {self.tries_complete}/{self.triespb}  {self.calculatepersentage(True)}".ljust(40)) # example: String Reversal 10/100  20% success
         print(preprint.replace("\n", " ").ljust(40), end="\r\033[A")
 
-    def start_thinking(self, starttime):
+    def start_thinking(self, starttime: datetime.datetime) -> None:
         """starts the thinking... output in the console with time"""
         self._stop_thinking = threading.Event()
 
@@ -359,19 +379,19 @@ class console():
         self._thinking_thread = threading.Thread(target=update_thinking_loop)
         self._thinking_thread.start()
 
-    def done_thinking(self):
+    def done_thinking(self) -> None:
         """Stops the thinking... output in the console"""
         self._stop_thinking.set()
         self._thinking_thread.join()
 
-    def runcomplete(self, result:bool, name:str):
+    def runcomplete(self, result: bool, name: str) -> None:
         self.currentbench_results.append(result)
         self.tries_complete += 1
         self.current_bench_name = name
         self.hub("Done")
 
 
-    def benchdone(self, name:str):
+    def benchdone(self, name:str) -> None:
         self.benches_run += 1
         print(f"COMPLETE {name}: {self.triespb}/{self.tries_complete}\nResults: {self.calculatepersentage(True)}", end="\n\n")
         self.tries_complete = 0
@@ -380,8 +400,9 @@ class console():
 
 
 def main():
-    global starttime
-    starttime = datetime.datetime.now()
+    global starttimem
+
+    starttimem = datetime.datetime.now()
 
 
     # create logs directory
@@ -422,18 +443,23 @@ def main():
 
     lstring_rehearsal = string_rehearsal(tries, con)
 
+    header = build_header(starttimem)
+
 
     run = {
-        "string_reversal": lstring_reversal,
-        "add_two_ints": ladd_two_ints,
-        "string_rehearsal": lstring_rehearsal
+        "header": header,
+        "benchmarkresults": {
+            "string_reversal": lstring_reversal,
+            "add_two_ints": ladd_two_ints,
+            "string_rehearsal": lstring_rehearsal
+        }
     }
 
 
     # check if all models are the same, if not, grab the most common model
     all_models = []
 
-    for benchmark in run.values():
+    for benchmark in run["benchmarkresults"].values():
         for model in benchmark["results"]:
             all_models.append(model["model"])
 
@@ -446,7 +472,9 @@ def main():
 
     model = model_counts.most_common(1)[0][0]
 
-    write_results(run, model)
+    # print in case writing doesn't work
+    if not write_results(run, model):
+        print(run)
     
     
     

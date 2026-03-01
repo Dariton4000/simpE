@@ -12,7 +12,7 @@ def analyze_acc(filename: str):
         data = json.load(f)
         if not data:
             raise FileNotFoundError
-        for benchmark_name, benchmark_data in data.items():
+        for benchmark_name, benchmark_data in data["benchmarkresults"].items():
             print(f"{benchmark_name}:")
             statuslist = []
             for result in benchmark_data["results"]:
@@ -31,8 +31,9 @@ def count_reasoning_patterns(filename: str, patterns: list):
         data = json.load(f)
         if not data:
             raise FileNotFoundError
+
         
-        for benchmark_name, benchmark_data in data.items():
+        for benchmark_name, benchmark_data in data["benchmarkresults"].items():
             print(f"{benchmark_name}:")
 
 
@@ -63,7 +64,7 @@ def reasoning_lenth_stats(filename):
         if not data:
             raise FileNotFoundError
         
-        for benchmark_name, benchmark_data in data.items():
+        for benchmark_name, benchmark_data in data["benchmarkresults"].items():
             print(f"{benchmark_name}:")
 
             reasoning = []
@@ -118,6 +119,5 @@ def main():
     count_reasoning_patterns(selection, ["wait", "pause", "hold on", "actually", "no,"])
     reasoning_lenth_stats(selection)
 
-
-
-main()
+if __name__ == "__main__":
+    main()
