@@ -394,16 +394,20 @@ def string_search(tries, con: console) -> dict:
 
         count = text.count(char)
 
-        if int(calresult["response"].strip()) == count:    
-            success = True
-        else:
+        try:
+            if int(calresult["response"].strip()) == count:    
+                success = True
+            else:
+                success = False
+        except ValueError:
             success = False
+        
 
         if success:
             log_message(f"Success: {t+1}")
             result["status"] = "success"
         else:
-            log_message(f"Test {t+1} failed. Expected: {count}, Got: {calresult["response"].strip()}")
+            log_message(f"Test {t+1} failed. Expected: {count}, Got: {calresult['response'].strip()}")
             result["status"] = "fail"
 
         con.runcomplete((success), f"String Search")
