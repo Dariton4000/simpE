@@ -19,7 +19,7 @@ reasoning_effort = "low"
 tries = 100
 timeout_time = 400 # time to wait until stopping the current answer, this is to prevent multi-thousand token answer when the llm gets into a death spiral. in seconds
 # Todo: Implement this ^^^
-max_tokens = 512 * 1 # might want to increase this with reasoning llms
+max_tokens = 512 * 2 # might want to increase this with reasoning llms
 # Todo ^^^ automatic increase/disableing for this for reasoning llms, needs warmuprun to check if model is reasoning
 
 # Todo: When a model responds with more than 120% of what is expected, clasefy the response as critical failature
@@ -162,9 +162,10 @@ def string_reversal(tries: int, con: console) -> dict:
 
         result["duration_seconds"] = delta.total_seconds()
 
+        result["prompt"] = prompt
+
         if "reasoning_text" in calresult:
             result["reasoning"] = calresult["reasoning_text"]
-            
 
         result["response"] = calresult["response"]
 
@@ -232,6 +233,8 @@ def add_two_ints(tries, con: console) -> dict:
         delta = datetime.datetime.now() - starttime
 
         result["duration_seconds"] = delta.total_seconds()
+
+        result["prompt"] = prompt
 
         if "reasoning_text" in calresult:
             result["reasoning"] = calresult["reasoning_text"]
@@ -307,6 +310,8 @@ def string_rehearsal(tries, con: console) -> dict:
 
         result["duration_seconds"] = delta.total_seconds()
 
+        result["prompt"] = prompt
+
         if "reasoning_text" in calresult:
             result["reasoning"] = calresult["reasoning_text"]
             
@@ -333,6 +338,86 @@ def string_rehearsal(tries, con: console) -> dict:
 
     con.benchdone(f"String Rehearsal")
     return(results)
+
+
+def string_search(tries, con: console) -> dict:
+
+    log_message(f"Starting new string search eval with {tries} tries")
+    
+    model = ""
+
+    results = {
+        "test_type": "String Search",
+        "tries": tries,
+        "results": []
+    }
+
+    client = OpenAI(base_url=baseurl)
+
+    for t in range(tries):
+        log_message(f"Starting test {t}")
+
+        result = {}
+
+
+        stringlenth = random.randint(3, 25)
+        text = ''.join(random.choice(string.ascii_uppercase + string.digits + string.ascii_lowercase) for _ in range(stringlenth))
+
+        result["string"] = text
+
+        # pick random character
+        char = random.choice(text)
+
+        prompt = f"Count how often the character '{char}' appears in the following string. Don't output anything else. Only output the number without anything additional, not even quotes: \"{text}\""
+
+        starttime = datetime.datetime.now()
+
+        calresult = nresponse(prompt, client, con, starttime)
+
+        if not calresult:
+            continue
+
+        delta = datetime.datetime.now() - starttime
+
+        result["duration_seconds"] = delta.total_seconds()
+
+        result["prompt"] = prompt
+
+        result["char"] = char
+
+        if "reasoning_text" in calresult:
+            result["reasoning"] = calresult["reasoning_text"]
+            
+        result["response"] = calresult["response"]
+
+        result["model"] = calresult["model"]
+
+        count = text.count(char)
+
+        try:
+            if int(calresult["response"].strip()) == count:    
+                success = True
+            else:
+                success = False
+        except ValueError:
+            success = False
+        
+
+        if success:
+            log_message(f"Success: {t+1}")
+            result["status"] = "success"
+        else:
+            log_message(f"Test {t+1} failed. Expected: {count}, Got: {calresult['response'].strip()}")
+            result["status"] = "fail"
+
+        con.runcomplete((success), f"String Search")
+
+        results["results"].append(result)
+
+    con.benchdone(f"String Search")
+    return(results)
+
+
 
 class console():
     def __init__(self, triespb) -> None:
@@ -443,6 +528,8 @@ def main():
 
     lstring_rehearsal = string_rehearsal(tries, con)
 
+    lstring_search = string_search(tries, con)
+
     header = build_header(starttimem)
 
 
@@ -451,7 +538,8 @@ def main():
         "benchmarkresults": {
             "string_reversal": lstring_reversal,
             "add_two_ints": ladd_two_ints,
-            "string_rehearsal": lstring_rehearsal
+            "string_rehearsal": lstring_rehearsal,
+            "string_search": lstring_search
         }
     }
 
