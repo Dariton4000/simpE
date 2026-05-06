@@ -12,14 +12,14 @@ results_directory = "results"
 
 # Todo: Implement multiple models in one run
 # leave empty to select currently loaded model (this only works with LM-Studio)
-llm = ""
+llm = "google/gemma-4-e4b"
 baseurl = "http://127.0.0.1:1234/v1"
 reasoning_effort = "low"
 
 tries = 100
 timeout_time = 400 # time to wait until stopping the current answer, this is to prevent multi-thousand token answer when the llm gets into a death spiral. in seconds
 # Todo: Implement this ^^^
-max_tokens = 512 * 2 # might want to increase this with reasoning llms
+max_tokens = 1024 * 2 # might want to increase this with reasoning llms
 # Todo ^^^ automatic increase/disableing for this for reasoning llms, needs warmuprun to check if model is reasoning
 
 # Todo: When a model responds with more than 120% of what is expected, clasefy the response as critical failature
@@ -102,7 +102,7 @@ def nresponse(prompt: str, client: OpenAI, con: console, starttime: datetime.dat
     resp["response"] = response
     if has_thinking:
         resp["reasoning_text"] = reasoning_text
-    resp["model"] = model
+    resp["model"] = locals().get("model", None)
 
     return resp
 
